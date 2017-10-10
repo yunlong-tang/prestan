@@ -1,15 +1,9 @@
 {
   "dependencies": {
     "async": "^2.5.0",
-    "colornames": "^1.1.1",
-    "csv": "^1.1.1",
-    "json-2-csv": "^2.1.1",
+    "html-minifier": "^3.5.5",
     "lodash": "^4.17.4",
-    "node-xlsx": "^0.11.0",
-    "node-zip": "^1.1.1",
-    "pipetteur": "^2.0.3",
     "prestan": "^1.1.0",
-    "prestashop-api-client": "^0.3.11",
     "xlsx2json": "^1.0.0"
   }
 }

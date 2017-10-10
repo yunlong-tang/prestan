@@ -3,7 +3,7 @@ module.exports = {
     S: 1,
     M: 2,
     L: 3,
-    One: 4,
+    'ONE SIZE': 4,
     XL: 25,
     '2XL': 26,
     '3XL': 27,

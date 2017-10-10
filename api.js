@@ -1,5 +1,18 @@
-const request = require('request')
 var Prestan = require('prestan')
+
+var executeRequest = Prestan.prototype.executeRequest
+Prestan.prototype.executeRequest = function (method, url, options = {}) {
+  if (options.form) {
+    options.body = options.form
+    if (!options.headers) {
+      options.headers = { 'Content-Type': 'application/x-www-form-urlencoded' }
+    } else {
+      options.headers['Content-Type'] = 'application/x-www-form-urlencoded'
+    }
+    delete options.form
+  }
+  return executeRequest.apply(this, arguments)
+}
 
 Prestan.prototype.upload = function (resource, data = {}, options = {}) {
   let url = this.resource(resource)
