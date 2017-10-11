@@ -6,9 +6,17 @@ module.exports = {
     'ONE SIZE': 4,
     XL: 25,
     '2XL': 26,
+    'XXL': 26,
     '3XL': 27,
+    'XXXL': 27,
     '4XL': 28,
-    '5XL': 29
+    'XXXXL': 28,
+    '5XL': 29,
+    'XXXXXL': 29,
+    'XS': 30,
+    '2XS': 31,
+    'XXS': 31,
+    'Free': 32
   },
   color: {
     gray: 5,
