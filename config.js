@@ -16,7 +16,7 @@ module.exports = {
     'XS': 30,
     '2XS': 31,
     'XXS': 31,
-    'Free': 32
+    'FREE': 32
   },
   color: {
     gray: 5,

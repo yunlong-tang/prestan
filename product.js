@@ -7,9 +7,10 @@ const xlsx2json = require('xlsx2json')
 const prestan = require('./api')
 const config = require('./config')
 const util = require('./util')
+const logger = require('./logger').getLogger()
 
 function uploadImage (productId, images) {
-  console.log('start to upload images')
+  logger.info('start to upload images')
   const cover = images.shift()
   const temp = []
   return prestan
@@ -33,7 +34,7 @@ function uploadImage (productId, images) {
             })
           })
           .catch(err => {
-            console.error('upload image error:', err)
+            logger.error('upload image error:', err)
             throw err
           })
       })
@@ -43,7 +44,7 @@ function uploadImage (productId, images) {
     })
 }
 
-function createProduct (products, description, defaultSKU) {
+function createProduct (products, descriptions, defaultSKU) {
   const images = []
 
   products.forEach(product => {
@@ -54,6 +55,7 @@ function createProduct (products, description, defaultSKU) {
     })
   })
   let data = _.pick(products[0], ['name', 'price', 'weight'])
+  logger.info('start create category', products[0].categories)
   let categories = util.createCategories(products[0].categories) || []
   data = _.assign(data, {
     available_for_order: 1,
@@ -69,7 +71,7 @@ function createProduct (products, description, defaultSKU) {
     },
     description: {
       language: {
-        _: description,
+        _: descriptions.join('<br />'),
         $: {
           id: 1
         }
@@ -117,7 +119,7 @@ function createProduct (products, description, defaultSKU) {
     })
     .then(res => {
       const productId = res.prestashop.product.id
-      console.log('create product success', productId)
+      logger.info('create product success', productId)
       return uploadImage(productId, images).then(results => {
         // create image ids in product.
         products.forEach(product => {
@@ -132,6 +134,10 @@ function createProduct (products, description, defaultSKU) {
         return products
       })
     })
+    .catch(err => {
+      logger.error('create product error', err, data)
+      throw err
+    })
 }
 
 function createCombinations (products) {
@@ -139,14 +145,14 @@ function createCombinations (products) {
   const all = products
     .filter(product => {
       // find size id
-      let sizeId = config.size[product.size]
+      let sizeId = config.size[product.size.toUpperCase()]
       if (sizeId) {
         product.sizeId = sizeId
       } else {
-        if (product.size.toLowerCase() === 'one size') {
-          sizeId = config.size['ONE SIZE']
+        if (product.size.toLowerCase().indexOf('one size') !== -1) {
+          product.sizeId = config.size['ONE SIZE']
         } else {
-          console.error('cannot find size for:', product)
+          logger.error('cannot find size for:', product)
           return false
         }
       }
@@ -157,7 +163,7 @@ function createCombinations (products) {
       if (colorId) {
         product.colorId = colorId
       } else {
-        console.error('cannot find color for:', product)
+        logger.error('cannot find color for:', product)
         return false
       }
       return true
@@ -221,17 +227,17 @@ function parse (filePath) {
   let xlsFileName = files.find(item => /xls/.test(item))
   let xlsFilePath = path.resolve(filePath, xlsFileName)
 
-  let descriptionFileName = files.find(item => /relate_size_chart\.html/.test(item))
-  let description = ''
-  if (descriptionFileName) {
-    let descriptionFile = path.resolve(filePath, descriptionFileName)
-    description = fs.readFileSync(descriptionFile, { encoding: 'utf8' })
-    description = description.replace(/width=".*?"/, 'width="100%"')
-    description = util.minify(description)
-  }
+  let descriptionFileName = files.filter(item => /size_chart\.html/.test(item)) || []
+  let descriptions = []
+  descriptionFileName.forEach(item => {
+    let descriptionFile = path.resolve(filePath, item)
+    let temp = fs.readFileSync(descriptionFile, { encoding: 'utf8' })
+    temp = temp.replace(/width=".*?"/, 'width="100%"')
+    descriptions.push(util.minify(temp))
+  })
+  // get product desc file content
+  descriptions.push(util.getDesc(filePath))
 
-  let desc = util.getDesc(filePath)
-  description += desc
   let defaultSKU
   return xlsx2json(xlsFilePath, {
     sheet: 0,
@@ -251,7 +257,7 @@ function parse (filePath) {
   })
     .then(json => {
       defaultSKU = json[0].sku
-      console.log('default sku is', defaultSKU)
+      logger.info('default sku is', defaultSKU)
       return prestan.get('products', {
         'filter[reference]': defaultSKU
       }).then(res => {
@@ -272,14 +278,14 @@ function parse (filePath) {
     })
     .then(products => {
       if (products.length) {
-        console.log('start to create product')
-        return createProduct(products, description, defaultSKU)
+        logger.info('start to create product')
+        return createProduct(products, descriptions, defaultSKU)
       } else {
         throw new Error('no qualified products')
       }
     })
     .then(products => {
-      console.log('start to create combination')
+      logger.info('start to create combination')
       return createCombinations(products)
     })
 }

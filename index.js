@@ -2,7 +2,9 @@ const fs = require('fs')
 const path = require('path')
 const async = require('async')
 const product = require('./product')
-const dataDir = './data'
+const dataDir = './data3'
+
+const logger = require('./logger').getLogger()
 
 let dirs = fs.readdirSync(dataDir)
 dirs = dirs.filter((dir) => {
@@ -10,13 +12,13 @@ dirs = dirs.filter((dir) => {
 })
 
 async.eachSeries(dirs, (dir, callback) => {
-  console.log('start upload', dir)
+  logger.info('start upload', dir)
   let file = path.resolve(dataDir, dir)
   product.parse(file).then(() => {
-    console.log('upload product successful', file, '\n')
+    logger.info('upload product successful', file)
     callback()
   }).catch(err => {
-    console.error('upload product failed', file, err.message, '\n')
+    logger.error('upload product failed', file, err.message)
     callback()
   })
 }, err => {

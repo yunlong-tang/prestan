@@ -12,12 +12,12 @@ module.exports = {
       const item = conditions[i]
       const temp = `${price} ${item}`
       if (eval(temp)) {
-        return price * config.prices[item]
+        let adjustedPrice = price * config.prices[item]
+        return adjustedPrice.toFixed(2)
       }
     }
   },
   createCategories (str) {
-    console.log('start create category', str)
     let temp = str.trim().split('>>')
     let results = []
     categoryConfig.forEach(item => {
