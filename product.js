@@ -10,7 +10,7 @@ const util = require('./util')
 const logger = require('./logger').getLogger()
 
 function uploadImage (productId, images) {
-  logger.info('start to upload images')
+  logger.info('start to upload images', images.length)
   const cover = images.shift()
   const temp = []
   return prestan
