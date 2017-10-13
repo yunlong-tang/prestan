@@ -2,7 +2,7 @@ const fs = require('fs')
 const path = require('path')
 const async = require('async')
 const product = require('./product')
-const dataDir = './data3'
+const dataDir = './data'
 
 const logger = require('./logger').getLogger()
 
