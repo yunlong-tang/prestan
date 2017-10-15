@@ -33,7 +33,7 @@ module.exports = {
     'yellow': 16,
     'brown': 17,
     'pink': 24,
-    'khaki': 32,
+    'khaki': 33,
     'navy': 34
   },
   prices: {
