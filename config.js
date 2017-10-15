@@ -1,10 +1,10 @@
 module.exports = {
   size: {
-    S: 1,
-    M: 2,
-    L: 3,
+    'S': 1,
+    'M': 2,
+    'L': 3,
     'ONE SIZE': 4,
-    XL: 25,
+    'XL': 25,
     '2XL': 26,
     'XXL': 26,
     '3XL': 27,
@@ -19,20 +19,22 @@ module.exports = {
     'FREE': 32
   },
   color: {
-    gray: 5,
-    taupe: 6,
-    beige: 7,
-    white: 8,
+    'gray': 5,
+    'taupe': 6,
+    'beige': 7,
+    'white': 8,
     'off White': 9,
-    red: 10,
-    black: 11,
-    camel: 12,
-    orange: 13,
-    blue: 14,
-    green: 15,
-    yellow: 16,
-    brown: 17,
-    pink: 24
+    'red': 10,
+    'black': 11,
+    'camel': 12,
+    'orange': 13,
+    'blue': 14,
+    'green': 15,
+    'yellow': 16,
+    'brown': 17,
+    'pink': 24,
+    'khaki': 32,
+    'navy': 34
   },
   prices: {
     '<= 0.1': 15,
@@ -51,5 +53,5 @@ module.exports = {
     '<= 12.5': 1.6,
     '> 12.5': 1.5
   },
-  quantityThreshold: 4
+  quantityThreshold: 2
 }
