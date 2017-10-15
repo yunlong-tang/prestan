@@ -13,6 +13,15 @@ Prestan.prototype.executeRequest = function (method, url, options = {}) {
   }
   return executeRequest.apply(this, arguments)
 }
+// FIX Non-whitespace before first tag. issue
+var parse = Prestan.prototype.parse;
+Prestan.prototype.parse = function(response) {
+  if(this.options.raw) {
+    return response;
+  }
+  response = response.replace(/[\ufeff]/ig, '')
+  return parse.apply(this, arguments);
+}
 
 Prestan.prototype.upload = function (resource, data = {}, options = {}) {
   let url = this.resource(resource)
