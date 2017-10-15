@@ -204,7 +204,7 @@ module.exports = [
       {
         id: '24',
         id_parent: '3',
-        name: 'T-Shirts & Tops',
+        name: 'Tops & T-Shirts',
         sub: [
           {
             id: '45',

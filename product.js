@@ -233,6 +233,8 @@ function parse (filePath) {
     let descriptionFile = path.resolve(filePath, item)
     let temp = fs.readFileSync(descriptionFile, { encoding: 'utf8' })
     temp = temp.replace(/width=".*?"/, 'width="100%"')
+    temp = temp.replace(/<meta charset="UTF-8">/ig, '')
+    temp = temp.replace(/<style>.*?<\/style>/ig, '')
     descriptions.push(util.minify(temp))
   })
   // get product desc file content

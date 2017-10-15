@@ -34,7 +34,11 @@ module.exports = {
     'brown': 17,
     'pink': 24,
     'khaki': 33,
-    'navy': 34
+    'navy': 34,
+    'colormix': 35,
+    'apricot': 36,
+    'as the picture': 37,
+    'light coffee': 38
   },
   prices: {
     '<= 0.1': 15,
@@ -53,5 +57,5 @@ module.exports = {
     '<= 12.5': 1.6,
     '> 12.5': 1.5
   },
-  quantityThreshold: 2
+  quantityThreshold: 1
 }
