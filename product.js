@@ -9,6 +9,37 @@ const config = require('./config')
 const util = require('./util')
 const logger = require('./logger').getLogger()
 
+function extractImages (products) {
+  const images = []
+  const imagesByColor = {}
+  products.map(prod => {
+    imagesByColor[prod.color] = imagesByColor[prod.color] || []
+    if (prod.images.length > imagesByColor[prod.color]) {
+      imagesByColor[prod.color] = prod.images
+    }
+    return prod
+  }).forEach(prod => {
+    // replace old image arrar with new images. so that they can be used when creating combination
+    prod.images = imagesByColor[prod.color].slice(0, 5)
+
+    // push to final image array
+    let count = 5
+    for (let i = 0; i < prod.images.length; i++) {
+      let img = prod.images[i]
+      if (images.indexOf(img) === -1) {
+        if (count > 0) {
+          images.push(img)
+          count--
+        } else {
+          console.log('break')
+          break
+        }
+      }
+    }
+  })
+  return images
+}
+
 function uploadImage (productId, images) {
   logger.info('start to upload images', images.length)
   const cover = images.shift()
@@ -45,15 +76,6 @@ function uploadImage (productId, images) {
 }
 
 function createProduct (products, descriptions, defaultSKU) {
-  const images = []
-
-  products.forEach(product => {
-    product.images.forEach(img => {
-      if (images.indexOf(img) === -1) {
-        images.push(img)
-      }
-    })
-  })
   let data = _.pick(products[0], ['name', 'price', 'weight'])
   logger.info('start create category', products[0].categories)
   let categories = util.createCategories(products[0].categories) || []
@@ -120,6 +142,7 @@ function createProduct (products, descriptions, defaultSKU) {
     .then(res => {
       const productId = res.prestashop.product.id
       logger.info('create product success', productId)
+      const images = extractImages(products)
       return uploadImage(productId, images).then(results => {
         // create image ids in product.
         products.forEach(product => {

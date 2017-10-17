@@ -57,5 +57,5 @@ module.exports = {
     '<= 12.5': 1.6,
     '> 12.5': 1.5
   },
-  quantityThreshold: 1
+  quantityThreshold: 2
 }
