@@ -38,7 +38,14 @@ module.exports = {
     'colormix': 35,
     'apricot': 36,
     'as the picture': 37,
-    'light coffee': 38
+    'light coffee': 38,
+    'purple': 39,
+    'coffee': 40,
+    'rose': 41,
+    'army green': 42,
+    'jacinth': 43,
+    'neon green': 44,
+    'blackish green': 45
   },
   prices: {
     '<= 0.1': 15,
