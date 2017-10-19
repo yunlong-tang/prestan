@@ -18,12 +18,20 @@ module.exports = {
     'XXS': 31,
     'FREE': 32
   },
+  textColor: {
+    '#1': 47,
+    '#2': 48,
+    '#3': 49,
+    '#4': 50,
+    '#5': 51,
+    '#6': 52
+  },
   color: {
     'gray': 5,
     'taupe': 6,
     'beige': 7,
     'white': 8,
-    'off White': 9,
+    'off white': 9,
     'red': 10,
     'black': 11,
     'camel': 12,

@@ -3,6 +3,7 @@ const path = require('path')
 const _ = require('lodash')
 const request = require('request')
 const xlsx2json = require('xlsx2json')
+const async = require('async')
 
 const prestan = require('./api')
 const config = require('./config')
@@ -180,12 +181,28 @@ function createCombinations (products) {
         }
       }
 
-      // find similar color id
-      let colorName = Object.keys(config.color).find(name => new RegExp(name, 'i').test(product.color))
-      let colorId = config.color[colorName] || false
+      // find exact color id
+      let colorId = config.color[product.color] || false
       if (colorId) {
         product.colorId = colorId
-      } else {
+        return true
+      }
+      // find similar color id
+      let colorName = Object.keys(config.color).find(name => new RegExp(name, 'i').test(product.color))
+      colorId = config.color[colorName] || false
+      if (colorId) {
+        product.colorId = colorId
+        return true
+      }
+      // find text color id
+      let textColor = Object.keys(config.textColor).find(name => new RegExp(name, 'i').test(product.color))
+      colorId = config.textColor[textColor] || false
+      if (colorId) {
+        product.colorId = colorId
+        return true
+      }
+
+      if (!colorId) {
         logger.error('cannot find color for:', product)
         return false
       }
