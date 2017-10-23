@@ -7,37 +7,40 @@ const async = require('async')
 
 const prestan = require('./api')
 const config = require('./config')
+const colors = require('./colors.json')
 const util = require('./util')
 const logger = require('./logger').getLogger()
 
 function extractImages (products) {
   const images = []
   const imagesByColor = {}
-  products.map(prod => {
-    imagesByColor[prod.color] = imagesByColor[prod.color] || []
-    if (prod.images.length > imagesByColor[prod.color]) {
-      imagesByColor[prod.color] = prod.images
-    }
-    return prod
-  }).forEach(prod => {
-    // replace old image arrar with new images. so that they can be used when creating combination
-    prod.images = imagesByColor[prod.color].slice(0, 5)
+  products
+    .map(prod => {
+      imagesByColor[prod.color] = imagesByColor[prod.color] || []
+      if (prod.images.length > imagesByColor[prod.color]) {
+        imagesByColor[prod.color] = prod.images
+      }
+      return prod
+    })
+    .forEach(prod => {
+      // replace old image arrar with new images. so that they can be used when creating combination
+      prod.images = imagesByColor[prod.color].slice(0, 5)
 
-    // push to final image array
-    let count = 5
-    for (let i = 0; i < prod.images.length; i++) {
-      let img = prod.images[i]
-      if (images.indexOf(img) === -1) {
-        if (count > 0) {
-          images.push(img)
-          count--
-        } else {
-          console.log('break')
-          break
+      // push to final image array
+      let count = 5
+      for (let i = 0; i < prod.images.length; i++) {
+        let img = prod.images[i]
+        if (images.indexOf(img) === -1) {
+          if (count > 0) {
+            images.push(img)
+            count--
+          } else {
+            console.log('break')
+            break
+          }
         }
       }
-    }
-  })
+    })
   return images
 }
 
@@ -74,6 +77,62 @@ function uploadImage (productId, images) {
         return temp
       })
     })
+}
+
+function validateColorAndSize (products) {
+  return new Promise((resolve, reject) => {
+    async.eachSeries(products, (product, cb) => {
+      // find size id
+      let sizeId = config.size[product.size]
+      if (sizeId) {
+        product.sizeId = sizeId
+      } else {
+        if (product.size.indexOf('ONE SIZE') !== -1) {
+          product.sizeId = config.size['ONE SIZE']
+        } else {
+          logger.error('cannot find size for:', product)
+          return cb(new Error(`Canot find size ${product.size}`))
+        }
+      }
+
+      // find exact color id
+      let colorId = colors[product.color] || false
+      if (colorId) {
+        product.colorId = colorId
+        return cb()
+      }
+      // find similar color id
+      let colorName = Object.keys(colors).find(name => new RegExp(name, 'i').test(product.color))
+      colorId = colors[colorName] || false
+      if (colorId) {
+        product.colorId = colorId
+        return cb()
+      }
+      // find text color id
+      let textColor = Object.keys(config.textColor).find(name => new RegExp(name, 'i').test(product.color))
+      colorId = config.textColor[textColor] || false
+      if (colorId) {
+        product.colorId = colorId
+        return cb()
+      }
+
+      if (!colorId) {
+        logger.error(`Cannot find color ${product.color}, try to create it.`)
+        util.createColor(product.color).then(res => {
+          product.colorId = res.id
+          cb()
+        }).catch(err => {
+          cb(err)
+        })
+      }
+    }, err => {
+      if (err) {
+        logger.error('validate color error', err)
+        return reject(err)
+      }
+      return resolve(products)
+    })
+  })
 }
 
 function createProduct (products, descriptions, defaultSKU) {
@@ -182,14 +241,14 @@ function createCombinations (products) {
       }
 
       // find exact color id
-      let colorId = config.color[product.color] || false
+      let colorId = colors[product.color] || false
       if (colorId) {
         product.colorId = colorId
         return true
       }
       // find similar color id
-      let colorName = Object.keys(config.color).find(name => new RegExp(name, 'i').test(product.color))
-      colorId = config.color[colorName] || false
+      let colorName = Object.keys(colors).find(name => new RegExp(name, 'i').test(product.color))
+      colorId = colors[colorName] || false
       if (colorId) {
         product.colorId = colorId
         return true
@@ -273,14 +332,15 @@ function parse (filePath) {
     let descriptionFile = path.resolve(filePath, item)
     let temp = fs.readFileSync(descriptionFile, { encoding: 'utf8' })
     temp = temp.replace(/width=".*?"/, 'width="100%"')
-    temp = temp.replace(/<meta charset="UTF-8">/ig, '')
-    temp = temp.replace(/<style>.*?<\/style>/ig, '')
+    temp = temp.replace(/<meta charset="UTF-8">/gi, '')
+    temp = temp.replace(/<style>.*?<\/style>/gi, '')
     descriptions.push(util.minify(temp))
   })
   // get product desc file content
   descriptions.push(util.getDesc(filePath))
 
-  let defaultSKU
+  let defaultSKU = xlsFileName.split('.')[0]
+  logger.info('default sku is', defaultSKU)
   return xlsx2json(xlsFilePath, {
     sheet: 0,
     dataStartingRow: 2,
@@ -298,33 +358,38 @@ function parse (filePath) {
     }
   })
     .then(json => {
-      defaultSKU = json[0].sku
-      logger.info('default sku is', defaultSKU)
-      return prestan.get('products', {
-        'filter[reference]': defaultSKU
-      }).then(res => {
-        let products = _.get(res, 'prestashop.products.product', [])
-        if (products.length === 0) {
-          json = json.filter(item => parseInt(item.quantity) > config.quantityThreshold && item.name)
-          json.forEach(item => {
-            item.price = item.price.split(' ')[1]
-            item.price = util.adjustPrice(item.price)
-            item.weight = item.weight.split(' ')[0]
-            item.images = item.images.replace(/https/g, 'http').split('\n')
-          })
-          return json
-        } else {
-          throw new Error('product already exist')
-        }
-      })
+      return prestan
+        .get('products', {
+          'filter[reference]': defaultSKU
+        })
+        .then(res => {
+          let products = _.get(res, 'prestashop.products.product', [])
+          if (products.length === 0) {
+            json = json.filter(item => parseInt(item.quantity) > config.quantityThreshold && item.name)
+            if (!json.length) {
+              throw new Error('No qualified product because stock is not enough')
+            }
+            json.forEach(item => {
+              item.price = item.price.split(' ')[1]
+              item.price = util.adjustPrice(item.price)
+              item.weight = item.weight.split(' ')[0]
+              item.size = item.size.toUpperCase()
+              item.color = item.color.toLowerCase()
+              item.images = item.images.replace(/https/g, 'http').split('\n')
+            })
+            return json
+          } else {
+            throw new Error('product already exist')
+          }
+        })
     })
     .then(products => {
-      if (products.length) {
-        logger.info('start to create product')
-        return createProduct(products, descriptions, defaultSKU)
-      } else {
-        throw new Error('no qualified products')
-      }
+      logger.info('start to validate product color and size')
+      return validateColorAndSize(products)
+    })
+    .then(products => {
+      logger.info('start to create product')
+      return createProduct(products, descriptions, defaultSKU)
     })
     .then(products => {
       logger.info('start to create combination')

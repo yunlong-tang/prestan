@@ -1,7 +1,11 @@
 const fs = require('fs')
 const path = require('path')
 const minify = require('html-minifier').minify
+const _ = require('lodash')
+const colorNames = _.invert(require('color-names'))
+const prestan = require('./api')
 const config = require('./config')
+const colors = require('./colors.json')
 const categoryConfig = require('./category.js')
 
 module.exports = {
@@ -69,5 +73,39 @@ module.exports = {
       }
     }
     return ''
+  },
+
+  createColor (name) {
+    name = _.startCase(name)
+    let hex = colorNames[name] && colorNames[name.replace(/\s/, '')]
+    if (!hex) {
+      return Promise.reject(new Error(`Cannot create color ${name}`))
+    }
+    const data = {
+      prestashop: {
+        product_option_value: {
+          id_attribute_group: 3,
+          color: hex,
+          name: {
+            language: {
+              _: name,
+              $: {
+                id: 1
+              }
+            }
+          }
+        }
+      }
+    }
+    return prestan.add('product_option_values', data).then(res => {
+      const color = res.prestashop.product_option_value
+      colors[name.toLowerCase()] = 100
+      this.updateColorsJSON(colors)
+      return color
+    })
+  },
+
+  updateColorsJSON (colors) {
+    fs.writeFileSync('./colors.json', JSON.stringify(colors, null, 2))
   }
 }
