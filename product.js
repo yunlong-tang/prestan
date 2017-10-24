@@ -69,8 +69,11 @@ function uploadImage (productId, images) {
             })
           })
           .catch(err => {
-            logger.error('upload image error:', err)
-            throw err
+            logger.error('upload image error:', err.message, img)
+            return temp.push({
+              id: false,
+              img: img
+            })
           })
       })
       return Promise.all(all).then(() => {
@@ -81,57 +84,64 @@ function uploadImage (productId, images) {
 
 function validateColorAndSize (products) {
   return new Promise((resolve, reject) => {
-    async.eachSeries(products, (product, cb) => {
-      // find size id
-      let sizeId = config.size[product.size]
-      if (sizeId) {
-        product.sizeId = sizeId
-      } else {
-        if (product.size.indexOf('ONE SIZE') !== -1) {
-          product.sizeId = config.size['ONE SIZE']
+    async.eachSeries(
+      products,
+      (product, cb) => {
+        // find size id
+        let sizeId = config.size[product.size]
+        if (sizeId) {
+          product.sizeId = sizeId
         } else {
-          logger.error('cannot find size for:', product)
-          return cb(new Error(`Canot find size ${product.size}`))
+          if (product.size.indexOf('ONE SIZE') !== -1) {
+            product.sizeId = config.size['ONE SIZE']
+          } else {
+            logger.error('cannot find size for:', product)
+            return cb(new Error(`Canot find size ${product.size}`))
+          }
         }
-      }
 
-      // find exact color id
-      let colorId = colors[product.color] || false
-      if (colorId) {
-        product.colorId = colorId
-        return cb()
-      }
-      // find similar color id
-      let colorName = Object.keys(colors).find(name => new RegExp(name, 'i').test(product.color))
-      colorId = colors[colorName] || false
-      if (colorId) {
-        product.colorId = colorId
-        return cb()
-      }
-      // find text color id
-      let textColor = Object.keys(config.textColor).find(name => new RegExp(name, 'i').test(product.color))
-      colorId = config.textColor[textColor] || false
-      if (colorId) {
-        product.colorId = colorId
-        return cb()
-      }
+        // find exact color id
+        let colorId = colors[product.color] || false
+        if (colorId) {
+          product.colorId = colorId
+          return cb()
+        }
+        // find similar color id
+        let colorName = Object.keys(colors).find(name => new RegExp(name, 'i').test(product.color))
+        colorId = colors[colorName] || false
+        if (colorId) {
+          product.colorId = colorId
+          return cb()
+        }
+        // find text color id
+        let textColor = Object.keys(config.textColor).find(name => new RegExp(name, 'i').test(product.color))
+        colorId = config.textColor[textColor] || false
+        if (colorId) {
+          product.colorId = colorId
+          return cb()
+        }
 
-      if (!colorId) {
-        logger.error(`Cannot find color ${product.color}, try to create it.`)
-        util.createColor(product.color).then(res => {
-          product.colorId = res.id
-          cb()
-        }).catch(err => {
-          cb(err)
-        })
+        if (!colorId) {
+          logger.error(`Cannot find color ${product.color}, try to create it.`)
+          util
+            .createColor(product.color)
+            .then(res => {
+              product.colorId = res.id
+              cb()
+            })
+            .catch(err => {
+              cb(err)
+            })
+        }
+      },
+      err => {
+        if (err) {
+          logger.error('validate color error', err)
+          return reject(err)
+        }
+        return resolve(products)
       }
-    }, err => {
-      if (err) {
-        logger.error('validate color error', err)
-        return reject(err)
-      }
-      return resolve(products)
-    })
+    )
   })
 }
 
@@ -213,89 +223,55 @@ function createProduct (products, descriptions, defaultSKU) {
             obj.id && product.imageIds.push({ id: obj.id })
           })
         })
+        products = products.filter(product => {
+          if (product.imageIds.length) {
+            return true
+          } else {
+            logger.info(`No images for this combination, size: ${product.size}, color: ${product.color}, skip it.`)
+            return false
+          }
+        })
 
         return products
       })
     })
     .catch(err => {
-      logger.error('create product error', err, data)
+      logger.error('create product error', err.message, data)
       throw err
     })
 }
 
 function createCombinations (products) {
   const productId = products[0].id
-  const all = products
-    .filter(product => {
-      // find size id
-      let sizeId = config.size[product.size.toUpperCase()]
-      if (sizeId) {
-        product.sizeId = sizeId
-      } else {
-        if (product.size.toLowerCase().indexOf('one size') !== -1) {
-          product.sizeId = config.size['ONE SIZE']
-        } else {
-          logger.error('cannot find size for:', product)
-          return false
+  const all = products.map((product, index) => {
+    let product_option_value = []
+    product_option_value.push({ id: product.sizeId })
+    product_option_value.push({ id: product.colorId })
+
+    let data = {
+      id_product: product.id,
+      quantity: product.quantity,
+      reference: product.sku,
+      minimal_quantity: '1',
+      default_on: index === 0 ? '1' : '0', // set first product as default one
+      associations: {
+        product_option_values: {
+          product_option_value: product_option_value
+        },
+        images: {
+          image: product.imageIds
         }
       }
-
-      // find exact color id
-      let colorId = colors[product.color] || false
-      if (colorId) {
-        product.colorId = colorId
-        return true
-      }
-      // find similar color id
-      let colorName = Object.keys(colors).find(name => new RegExp(name, 'i').test(product.color))
-      colorId = colors[colorName] || false
-      if (colorId) {
-        product.colorId = colorId
-        return true
-      }
-      // find text color id
-      let textColor = Object.keys(config.textColor).find(name => new RegExp(name, 'i').test(product.color))
-      colorId = config.textColor[textColor] || false
-      if (colorId) {
-        product.colorId = colorId
-        return true
-      }
-
-      if (!colorId) {
-        logger.error('cannot find color for:', product)
-        return false
-      }
-      return true
-    })
-    .map((product, index) => {
-      let product_option_value = []
-      product_option_value.push({ id: product.sizeId })
-      product_option_value.push({ id: product.colorId })
-
-      let data = {
-        id_product: product.id,
-        quantity: product.quantity,
-        reference: product.sku,
-        minimal_quantity: '1',
-        default_on: index === 0 ? '1' : '0', // set first product as default one
-        associations: {
-          product_option_values: {
-            product_option_value: product_option_value
-          },
-          images: {
-            image: product.imageIds
-          }
-        }
-      }
-      return prestan
-        .add('combinations', {
-          prestashop: { combination: data }
-        })
-        .then(res => {
-          product.combinationId = _.get(res, 'prestashop.combination.id')
-          return product
-        })
-    })
+    }
+    return prestan
+      .add('combinations', {
+        prestashop: { combination: data }
+      })
+      .then(res => {
+        product.combinationId = _.get(res, 'prestashop.combination.id')
+        return product
+      })
+  })
   return Promise.all(all).then(results => {
     return prestan.get('products', { id: productId }).then(product => {
       const stocks = _.get(product, 'prestashop.product.associations.stock_availables.stock_available') || []

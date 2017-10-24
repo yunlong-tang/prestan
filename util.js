@@ -77,7 +77,9 @@ module.exports = {
 
   createColor (name) {
     name = _.startCase(name)
-    let hex = colorNames[name] && colorNames[name.replace(/\s/, '')]
+    let hex = colorNames[name] || colorNames[_.capitalize(name.replace(/\s/, ''))]
+
+    console.log(_.capitalize(name.replace(/\s/, '')))
     if (!hex) {
       return Promise.reject(new Error(`Cannot create color ${name}`))
     }
@@ -99,7 +101,7 @@ module.exports = {
     }
     return prestan.add('product_option_values', data).then(res => {
       const color = res.prestashop.product_option_value
-      colors[name.toLowerCase()] = 100
+      colors[name.toLowerCase()] = color.id
       this.updateColorsJSON(colors)
       return color
     })
