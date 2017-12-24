@@ -346,7 +346,7 @@ function parse (filePath) {
               throw new Error('No qualified product because stock is not enough')
             }
             json.forEach(item => {
-              item.price = item.price.split(' ')[1]
+              item.price = _.toNumber(item.price) ? item.price : item.price.split(' ')[1]
               item.price = util.adjustPrice(item.price)
               item.weight = item.weight.split(' ')[0]
               item.size = item.size.toUpperCase()
