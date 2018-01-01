@@ -300,6 +300,9 @@ function createCombinations (products) {
 function parse (filePath) {
   let files = fs.readdirSync(filePath)
   let xlsFileName = files.find(item => /xls/.test(item))
+  if(!xlsFileName) {
+    throw new Error(`can not find the xls file in ${filePath}`);
+  }
   let xlsFilePath = path.resolve(filePath, xlsFileName)
 
   let descriptionFileName = files.filter(item => /size_chart\.html/.test(item)) || []

@@ -14,13 +14,18 @@ dirs = dirs.filter((dir) => {
 async.eachSeries(dirs, (dir, callback) => {
   logger.info('start upload', dir)
   let file = path.resolve(dataDir, dir)
-  product.parse(file).then(() => {
-    logger.info('upload product successful', file)
-    callback()
-  }).catch(err => {
+  try {
+    product.parse(file).then(() => {
+      logger.info('upload product successful', file)
+      callback()
+    }).catch(err => {
+      logger.error('upload product failed', file, err.message)
+      callback()
+    })
+  } catch (err) {
     logger.error('upload product failed', file, err.message)
     callback()
-  })
+  }
 }, err => {
   console.error('done', err)
 })
