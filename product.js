@@ -95,7 +95,7 @@ function validateColorAndSize (products) {
           if (product.size.indexOf('ONE SIZE') !== -1) {
             product.sizeId = config.size['ONE SIZE']
           } else {
-            logger.error('cannot find size for:', product)
+            logger.warn('cannot find size for:', product)
             return cb(new Error(`Canot find size ${product.size}`))
           }
         }
@@ -349,7 +349,7 @@ function parse (filePath) {
               item.price = _.toNumber(item.price) ? item.price : item.price.split(' ')[1]
               item.price = util.adjustPrice(item.price)
               item.weight = item.weight.split(' ')[0]
-              item.size = item.size.toUpperCase()
+              item.size = item.size.toUpperCase() || 'ONE SIZE'
               item.color = item.color.toLowerCase()
               item.images = item.images.replace(/https/g, 'http').split('\n')
             })
